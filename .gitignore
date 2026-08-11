@@ -1,0 +1,51 @@
+# Python
+venv/
+medpredictor_advanced_env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.bak
+*.joblib
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Databases & local user files
+medpredictor.db
+medpredictor_advanced.db
+*.sqlite3
+ddxplus_data/
+.node/
+.vscode/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+node_modules/
+.next/
+out/
+.DS_Store
+*.log
