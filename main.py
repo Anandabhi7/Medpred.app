@@ -560,14 +560,18 @@ disease_info_dict = DiseaseInfoDict()
 def load_data():
     global symptoms_data, diseases_data, ml_model, symptom_to_index, drug_interactions_data
     try:
-        ml_model = joblib.load('models/disease_prediction_model.joblib')
         import json
-        with open('models/feature_names.json', 'r') as f:
-            symptoms_data = json.load(f)
-        with open('models/target_classes.json', 'r') as f:
-            diseases_data = json.load(f)
-        symptom_to_index = {symptom: idx for idx, symptom in enumerate(symptoms_data)}
-        
+        if os.path.exists('models/feature_names.json'):
+            with open('models/feature_names.json', 'r') as f:
+                symptoms_data = json.load(f)
+            symptom_to_index = {symptom: idx for idx, symptom in enumerate(symptoms_data)}
+            logger.info(f"✅ Loaded {len(symptoms_data)} symptom features")
+            
+        if os.path.exists('models/target_classes.json'):
+            with open('models/target_classes.json', 'r') as f:
+                diseases_data = json.load(f)
+            logger.info(f"✅ Loaded {len(diseases_data)} disease classes")
+            
         # Load drug interactions CSV
         csv_path = 'datasets/drug_interactions_database.csv'
         if os.path.exists(csv_path):
@@ -577,15 +581,15 @@ def load_data():
         else:
             logger.warning("⚠️ drug_interactions_database.csv not found, using empty interactions list")
             drug_interactions_data = []
-            
-        logger.info("✅ Loaded real ML model and features successfully")
+
+        model_path = 'models/disease_prediction_model.joblib'
+        if os.path.exists(model_path):
+            ml_model = joblib.load(model_path)
+            logger.info("✅ Loaded real ML model successfully")
+        else:
+            logger.warning(f"⚠️ {model_path} not found")
     except Exception as e:
-        logger.error(f"❌ Error loading real ML model: {e}")
-        symptoms_data = []
-        diseases_data = []
-        ml_model = None
-        symptom_to_index = {}
-        drug_interactions_data = []
+        logger.error(f"❌ Error during load_data: {e}")
 
 
 # Mapping from chatbot simple symptom keywords to DDXPlus human-readable symptom names
