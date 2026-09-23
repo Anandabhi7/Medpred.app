@@ -120,16 +120,24 @@ export const useHealthStore = create<HealthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const res = await axiosClient.get('/api/symptoms');
-      if (res.data?.success) {
-        // Handle both API response styles (array directly or wrapped in list)
-        const syms = Array.isArray(res.data.symptoms) ? res.data.symptoms : [];
-        set({ symptoms: syms, loading: false });
-      } else {
-        set({ error: 'Failed to load symptoms', loading: false });
+      if (res.data?.success && Array.isArray(res.data.symptoms) && res.data.symptoms.length > 0) {
+        set({ symptoms: res.data.symptoms, loading: false });
+        return;
       }
     } catch (err) {
-      set({ error: 'Failed to load symptoms list', loading: false });
+      console.warn('Backend symptoms API unreachable, loading fallback symptoms catalog.');
     }
+    
+    // Fallback symptoms list for standalone client-side experience
+    const fallbackSymptoms = [
+      'fever', 'headache', 'fatigue', 'weakness', 'dizziness', 'fainting', 'sweating', 'chills',
+      'cough', 'shortness_of_breath', 'difficulty_breathing', 'wheezing', 'chest_pain', 'sore_throat',
+      'palpitations', 'swelling_in_legs', 'high_blood_pressure', 'nausea', 'vomiting', 'diarrhea',
+      'constipation', 'abdominal_pain', 'heartburn', 'acid_reflux', 'bloating', 'loss_of_taste',
+      'memory_problems', 'confusion', 'brain_fog', 'numbness', 'tingling', 'joint_pain', 'back_pain',
+      'muscle_pain', 'neck_pain', 'rash', 'itching', 'dry_skin', 'hair_loss', 'anxiety', 'insomnia'
+    ];
+    set({ symptoms: fallbackSymptoms, loading: false, error: null });
   },
 
   selectSymptom: (symptom) => {
