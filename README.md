@@ -6,7 +6,13 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-Ensemble_97.1%25-F7931E?style=for-the-badge&logo=scikit-learn)
-![openFDA](https://img.shields.io/badge/openFDA-Live_API-blue?style=for-the-badge)
+![Vercel](https://img.shields.io/badge/Vercel-Live_Deployment-black?style=for-the-badge&logo=vercel)
+
+---
+
+## 🌐 Live Web Application & Deployment
+- **Vercel Live Web Portal**: [https://medpred-app.vercel.app](https://medpred-app.vercel.app)
+- **GitHub Repository**: [https://github.com/Anandabhi7/Medpred.app](https://github.com/Anandabhi7/Medpred.app)
 
 ---
 
