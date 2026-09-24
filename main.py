@@ -557,23 +557,27 @@ class DiseaseInfoDict:
 
 disease_info_dict = DiseaseInfoDict()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def load_data():
     global symptoms_data, diseases_data, ml_model, symptom_to_index, drug_interactions_data
     try:
         import json
-        if os.path.exists('models/feature_names.json'):
-            with open('models/feature_names.json', 'r') as f:
+        features_path = os.path.join(BASE_DIR, 'models', 'feature_names.json')
+        if os.path.exists(features_path):
+            with open(features_path, 'r', encoding='utf-8') as f:
                 symptoms_data = json.load(f)
             symptom_to_index = {symptom: idx for idx, symptom in enumerate(symptoms_data)}
             logger.info(f"✅ Loaded {len(symptoms_data)} symptom features")
             
-        if os.path.exists('models/target_classes.json'):
-            with open('models/target_classes.json', 'r') as f:
+        targets_path = os.path.join(BASE_DIR, 'models', 'target_classes.json')
+        if os.path.exists(targets_path):
+            with open(targets_path, 'r', encoding='utf-8') as f:
                 diseases_data = json.load(f)
             logger.info(f"✅ Loaded {len(diseases_data)} disease classes")
             
         # Load drug interactions CSV
-        csv_path = 'datasets/drug_interactions_database.csv'
+        csv_path = os.path.join(BASE_DIR, 'datasets', 'drug_interactions_database.csv')
         if os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
             drug_interactions_data = df.to_dict(orient='records')
@@ -582,14 +586,54 @@ def load_data():
             logger.warning("⚠️ drug_interactions_database.csv not found, using empty interactions list")
             drug_interactions_data = []
 
-        model_path = 'models/disease_prediction_model.joblib'
+        model_path = os.path.join(BASE_DIR, 'models', 'disease_prediction_model.joblib')
         if os.path.exists(model_path):
-            ml_model = joblib.load(model_path)
-            logger.info("✅ Loaded real ML model successfully")
+            try:
+                ml_model = joblib.load(model_path)
+                logger.info("✅ Loaded real ML model successfully")
+            except Exception as me:
+                logger.warning(f"⚠️ Could not deserialize ML model ({me}), will use fallback diagnostic engine")
+                ml_model = None
         else:
             logger.warning(f"⚠️ {model_path} not found")
     except Exception as e:
         logger.error(f"❌ Error during load_data: {e}")
+
+def compute_fallback_probabilities(selected_symptoms: List[str], diseases: List[str]) -> np.ndarray:
+    """Clinical heuristic probability engine when ML model is offline or unpickling"""
+    if not diseases:
+        diseases = [
+            'Acute rhinosinusitis', 'Allergic sinusitis', 'Anemia', 'Bronchitis', 'COVID-19',
+            'Cluster headache', 'Gastroenteritis', 'GERD', 'Influenza', 'Migraine',
+            'Panic disorder', 'Pneumonia', 'Spontaneous pneumothorax', 'Tension-type headache',
+            'Viral pharyngitis'
+        ]
+    
+    scores = np.ones(len(diseases), dtype=float) * 0.05
+    sym_text = " ".join(selected_symptoms).lower()
+    
+    for idx, d in enumerate(diseases):
+        d_lower = d.lower()
+        if any(w in sym_text for w in ['cough', 'breath', 'chest', 'throat', 'lung']):
+            if any(term in d_lower for term in ['pneumonia', 'bronchitis', 'asthma', 'copd', 'respiratory', 'pharyngitis', 'rhinosinusitis']):
+                scores[idx] += 0.8
+        if any(w in sym_text for w in ['headache', 'dizzy', 'vision', 'migraine', 'head']):
+            if any(term in d_lower for term in ['headache', 'migraine', 'cluster', 'tension']):
+                scores[idx] += 0.9
+        if any(w in sym_text for w in ['nausea', 'vomit', 'diarrhea', 'stomach', 'belly', 'abdomen']):
+            if any(term in d_lower for term in ['gastro', 'gerd', 'appendicitis', 'bowel', 'colitis', 'cholecystitis']):
+                scores[idx] += 0.85
+        if any(w in sym_text for w in ['fever', 'chills', 'sweat', 'temperature', 'shiver']):
+            if any(term in d_lower for term in ['infection', 'influenza', 'covid', 'pneumonia', 'sinusitis', 'pharyngitis']):
+                scores[idx] += 0.75
+        if any(w in sym_text for w in ['palpitation', 'chest pain', 'heart', 'tightness']):
+            if any(term in d_lower for term in ['cardiac', 'angina', 'myocardial', 'pericarditis', 'atrial', 'fibrillation']):
+                scores[idx] += 0.9
+                
+    total = np.sum(scores)
+    if total > 0:
+        return scores / total
+    return np.ones(len(diseases)) / len(diseases)
 
 
 # Mapping from chatbot simple symptom keywords to DDXPlus human-readable symptom names
@@ -1037,7 +1081,16 @@ def predict_disease(data: PredictRequest, db: Session = Depends(get_db), current
         logger.info(f"🔍 Analyzing symptoms: {selected_symptoms}")
         
         symptom_vector = create_symptom_vector(selected_symptoms)
-        probabilities = ml_model.predict_proba(symptom_vector)[0]
+        probabilities = None
+        if ml_model is not None:
+            try:
+                probabilities = ml_model.predict_proba(symptom_vector)[0]
+            except Exception as pe:
+                logger.warning(f"⚠️ ml_model.predict_proba failed: {pe}, using fallback engine")
+                probabilities = None
+                
+        if probabilities is None:
+            probabilities = compute_fallback_probabilities(selected_symptoms, diseases_data)
         
         predictions = []
         for i, (disease, prob) in enumerate(zip(diseases_data, probabilities)):
