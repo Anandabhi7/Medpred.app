@@ -12,6 +12,7 @@
 
 ## 🌐 Live Web Application & Deployment
 - **Vercel Live Web Portal**: [https://medpred-app.vercel.app](https://medpred-app.vercel.app)
+- **Render Cloud Backend API**: [https://medpred-api.onrender.com](https://medpred-api.onrender.com)
 - **GitHub Repository**: [https://github.com/Anandabhi7/Medpred.app](https://github.com/Anandabhi7/Medpred.app)
 
 ---
